@@ -19,7 +19,6 @@ class PrusaLinkTimelapse : public PollingComponent, public camera::CameraListene
    void loop() override;     // Nicht-blockierend: Aufnahme/Webhook abarbeiten
 
    void set_host(const std::string &host) { host_ = host; }
-   void set_port(uint16_t port) { port_ = port; }
    void set_password(const std::string &p) { password_ = p; }
    void set_layer_tolerance(float t) { layer_tolerance_ = t; }
    void set_save_to_sd(bool s) { save_to_sd_ = s; }
@@ -39,7 +38,6 @@ class PrusaLinkTimelapse : public PollingComponent, public camera::CameraListene
    bool webhook_post(uint8_t *data, size_t len);
 
    std::string host_;
-   uint16_t port_;
    std::string password_;
    float layer_tolerance_{0.01f};
    bool save_to_sd_{false};
