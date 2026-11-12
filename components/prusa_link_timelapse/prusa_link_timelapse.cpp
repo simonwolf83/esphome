@@ -66,7 +66,7 @@ bool PrusaLinkTimelapse::fetch_status(std::string &response) {
   }
 
   std::string uri = "/api/v1/status";
-  std::string url = "http://" + host_ + ":" + uri;
+  std::string url = "http://" + host_ + uri;
 
   // Add X-Api-Key header with password for Prusa-Link authentication
   http_request::Header api_key_header{"X-Api-Key", password_};
@@ -112,8 +112,6 @@ bool PrusaLinkTimelapse::fetch_status(std::string &response) {
     return false;
   }
 }
-
-
 
 void PrusaLinkTimelapse::process_status(const std::string &json_str) {
   bool parsed = json::parse_json(json_str, [this](JsonObject root) {
