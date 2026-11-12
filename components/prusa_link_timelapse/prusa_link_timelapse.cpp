@@ -4,6 +4,7 @@
 #include <esphome/components/http_request/http_request.h>
 
 #include <mbedtls/md5.h>
+#include <string>
 
 namespace esphome {
 namespace prusa_link_timelapse {
@@ -67,35 +68,30 @@ bool PrusaLinkTimelapse::fetch_status(std::string &response) {
   std::string uri = "/api/v1/status";
   std::string url = "http://" + host_ + ":" + to_string(port_) + uri;
 
-  // First try without authentication
-  auto container = http_request_->get(url.c_str());
+  // Add X-Api-Key header with password for Prusa-Link authentication
+  http_request::Header api_key_header{"X-Api-Key", password_};
+  auto container = http_request_->get(url.c_str(), {api_key_header});
   if (!container) {
     ESP_LOGW(TAG, "Failed to create HTTP request");
     return false;
   }
 
   // Read the response
-  // We need to read the response to get the status code and body
-  // For simplicity, we'll read into a buffer
   const size_t buffer_size = 4096;
   uint8_t buffer[buffer_size];
   size_t total_read = 0;
 
-  // Read the response
   while (true) {
     int bytes_read = container->read(buffer + total_read, buffer_size - total_read);
     if (bytes_read > 0) {
       total_read += bytes_read;
     } else if (bytes_read == 0) {
-      // Check if we've read all the data
       if (container->is_read_complete()) {
         break;
       }
-      // Small delay to allow more data to arrive
       delay(10);
       continue;
     } else {
-      // Error
       ESP_LOGW(TAG, "Error reading HTTP response: %d", bytes_read);
       container->end();
       return false;
@@ -110,60 +106,6 @@ bool PrusaLinkTimelapse::fetch_status(std::string &response) {
     response.assign(reinterpret_cast<char *>(buffer), total_read);
     container->end();
     return true;
-  } else if (status_code == 401) {
-    // Need authentication
-    // Get the WWW-Authenticate header
-    std::string www_auth = container->get_response_header("WWW-Authenticate");
-    container->end();
-
-    if (www_auth.empty()) {
-      ESP_LOGW(TAG, "401 Unauthorized but no WWW-Authenticate header");
-      return false;
-    }
-
-    std::string auth = build_digest_header(www_auth, uri);
-    if (auth.empty()) {
-      ESP_LOGW(TAG, "Failed to build digest header");
-      return false;
-    }
-
-    // Retry with authentication
-    http_request::Header auth_header{"Authorization", auth};
-    auto container2 = http_request_->get(url.c_str(), {auth_header});
-    if (!container2) {
-      ESP_LOGW(TAG, "Failed to create authenticated HTTP request");
-      return false;
-    }
-
-    // Read the response
-    total_read = 0;
-    while (true) {
-      int bytes_read = container2->read(buffer + total_read, buffer_size - total_read);
-      if (bytes_read > 0) {
-        total_read += bytes_read;
-      } else if (bytes_read == 0) {
-        if (container2->is_read_complete()) {
-          break;
-        }
-        delay(10);
-        continue;
-      } else {
-        ESP_LOGW(TAG, "Error reading authenticated HTTP response: %d", bytes_read);
-        container2->end();
-        return false;
-      }
-    }
-
-    status_code = container2->status_code;
-    if (status_code == 200) {
-      response.assign(reinterpret_cast<char *>(buffer), total_read);
-      container2->end();
-      return true;
-    } else {
-      ESP_LOGW(TAG, "Authenticated request failed with status: %d", status_code);
-      container2->end();
-      return false;
-    }
   } else {
     ESP_LOGW(TAG, "HTTP request failed with status: %d", status_code);
     container->end();
@@ -171,34 +113,7 @@ bool PrusaLinkTimelapse::fetch_status(std::string &response) {
   }
 }
 
-std::string PrusaLinkTimelapse::build_digest_header(const std::string &www_auth, const std::string &uri) {
-  // Minimaler RFC 2617 Digest (qop="auth"), ausreichend für Prusa Link
-  auto extract = [&](const char *key) -> std::string {
-    size_t p = www_auth.find(key);
-    if (p == std::string::npos)
-      return "";
-    p = www_auth.find('"', p);
-    if (p == std::string::npos)
-      return "";
-    size_t e = www_auth.find('"', p + 1);
-    return www_auth.substr(p + 1, e - p - 1);
-  };
-  std::string realm = extract("realm");
-  std::string nonce = extract("nonce");
-  if (realm.empty() || nonce.empty())
-    return "";
 
-  std::string nc = "00000001";
-  std::string cnonce = md5_hex(to_string(micros()));
-  std::string ha1 = md5_hex(username_ + ":" + realm + ":" + password_);
-  std::string ha2 = md5_hex("GET:" + uri);
-  std::string response_md5 =
-      md5_hex(ha1 + ":" + nonce + ":" + nc + ":" + cnonce + ":auth:" + ha2);
-
-  return "Digest username=\"" + username_ + "\", realm=\"" + realm + "\", nonce=\"" + nonce +
-         "\", uri=\"" + uri + "\", qop=auth, nc=" + nc + ", cnonce=\"" + cnonce +
-         "\", response=\"" + response_md5 + "\", algorithm=MD5";
-}
 
 void PrusaLinkTimelapse::process_status(const std::string &json_str) {
   bool parsed = json::parse_json(json_str, [this](JsonObject root) {

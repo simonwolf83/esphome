@@ -7,7 +7,6 @@ from esphome.components.esp32_camera import ESP32Camera
 # In neueren ESPHome-Versionen sind diese Keys nicht mehr in esphome.const:
 CONF_HOST = "host"
 CONF_PORT = "port"
-CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 
 DEPENDENCIES = ["esp32_camera", "network", "http_request", "json"]
@@ -31,7 +30,6 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_CAMERA): cv.use_id(ESP32Camera),
         cv.Required(CONF_HOST): cv.string_strict,
         cv.Optional(CONF_PORT, default=80): cv.port,
-        cv.Required(CONF_USERNAME): cv.string_strict,
         cv.Required(CONF_PASSWORD): cv.string_strict,
         cv.Optional(
             CONF_POLL_INTERVAL, default="2s"
@@ -48,7 +46,6 @@ async def to_code(config):
     await cg.register_component(var, config)
     cg.add(var.set_host(config[CONF_HOST]))
     cg.add(var.set_port(config[CONF_PORT]))
-    cg.add(var.set_username(config[CONF_USERNAME]))
     cg.add(var.set_password(config[CONF_PASSWORD]))
     cg.add(var.set_layer_tolerance(config[CONF_LAYER_TOLERANCE]))
     cg.add(var.set_save_to_sd(config[CONF_SAVE_TO_SD]))

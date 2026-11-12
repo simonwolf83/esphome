@@ -20,7 +20,6 @@ class PrusaLinkTimelapse : public PollingComponent, public camera::CameraListene
 
    void set_host(const std::string &host) { host_ = host; }
    void set_port(uint16_t port) { port_ = port; }
-   void set_username(const std::string &u) { username_ = u; }
    void set_password(const std::string &p) { password_ = p; }
    void set_layer_tolerance(float t) { layer_tolerance_ = t; }
    void set_save_to_sd(bool s) { save_to_sd_ = s; }
@@ -33,7 +32,6 @@ class PrusaLinkTimelapse : public PollingComponent, public camera::CameraListene
 
   protected:
    bool fetch_status(std::string &response);
-   std::string build_digest_header(const std::string &www_auth, const std::string &uri);
    void process_status(const std::string &json);
    void start_capture();
    void handle_captured_frame(uint8_t *data, size_t len);
@@ -42,7 +40,6 @@ class PrusaLinkTimelapse : public PollingComponent, public camera::CameraListene
 
    std::string host_;
    uint16_t port_;
-   std::string username_;
    std::string password_;
    float layer_tolerance_{0.01f};
    bool save_to_sd_{false};
