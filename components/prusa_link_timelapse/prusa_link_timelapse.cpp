@@ -120,9 +120,10 @@ void PrusaLinkTimelapse::process_status(const std::string &json_str) {
       return true;
     std::string state;
     JsonObject st = printer["state"];
-    if (!st.isNull() && !st["text"].isNull())
+    if (!st.isNull() && !st["text"].isNull()) {
       state = st["text"].as<std::string>();
-    ESP_LOGI(TAG, "%s", state.c_str());
+      ESP_LOGI(TAG, "%s", state.c_str());
+    }
     // Z-Achse: im Original-Fork das Layer-Change-Signal
     float z = printer["z_axis"] | -1.0f;
 

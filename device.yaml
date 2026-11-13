@@ -49,7 +49,6 @@ external_components:
 prusa_link_timelapse:
   camera: printer_cam
   host: 192.168.1.42        # IP des Druckers (Prusa Link)
-  username: maker           # Prusa-Link-Zugangsdaten (Drucker-Display -> Settings)
   password: !secret prusa_password
   poll_interval: 2s
   layer_tolerance: 0.01     # Mindest-Z-Delta für "Layer-Wechsel" (mm)
